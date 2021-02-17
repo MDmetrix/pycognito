@@ -729,3 +729,81 @@ class Cognito:
         """
         response = self.client.list_groups(UserPoolId=self.user_pool_id)
         return [self.get_group_obj(group_data) for group_data in response.get("Groups")]
+
+    def admin_add_user_to_group(self, username, group_name):
+        """
+        Add the user to the specified group
+        :param username: the username
+        :param group_name: the name of the group to add the user to
+        :return:
+        """
+        self.client.admin_add_user_to_group(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            GroupName=group_name,
+        )
+
+    def admin_remove_user_from_group(self, username, group_name):
+        """
+        Remove the user from the specified group
+        :param username: the username
+        :param group_name: the name of the group to remove the user from
+        :return:
+        """
+        self.client.admin_remove_user_from_group(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            GroupName=group_name,
+        )
+
+    def admin_list_groups_for_user(self, username):
+        """
+        Get the list of groups a user belongs to
+        :param username:
+        :return: List
+        """
+
+        def process_groups_response(groups_response):
+            groups = []
+            for group_dict in groups_response["Groups"]:
+                groups.append(group_dict["GroupName"])
+            return groups
+
+        groups_response = self.client.admin_list_groups_for_user(
+            Username=username, UserPoolId=self.user_pool_id, Limit=60
+        )
+        user_groups = process_groups_response(groups_response)
+
+        while "NextToken" in groups_response.keys():
+            groups_response = self.client.admin_list_groups_for_user(
+                Username=username,
+                UserPoolId=self.user_pool_id,
+                Limit=60,
+                NextToken=groups_response["NextToken"],
+            )
+            new_groups = process_groups_response(groups_response)
+            user_groups.extend(new_groups)
+
+        return user_groups
+
+    def admin_enable_user(self, username):
+        """
+        Enable a user
+        :param username:
+        :return:
+        """
+        self.client.admin_enable_user(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+        )
+
+    def admin_disable_user(self, username):
+        """
+        Disable a user
+        :param username:
+        :return:
+        """
+        self.client.admin_disable_user(
+            UserPoolId=self.user_pool_id,
+            Username=self.username,
+        )
