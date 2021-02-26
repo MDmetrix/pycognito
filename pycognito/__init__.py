@@ -178,6 +178,8 @@ class Cognito:
         self.refresh_token = refresh_token
         self.client_secret = client_secret
         self.token_type = None
+        self.id_claims = None
+        self.access_claims = None
         self.custom_attributes = None
         self.base_attributes = None
         self.pool_jwk = None
@@ -196,6 +198,10 @@ class Cognito:
         else:
             self.client = boto3.client("cognito-idp", **boto3_client_kwargs)
 
+    @property
+    def user_pool_url(self):
+        return f"https://cognito-idp.{self.user_pool_region}.amazonaws.com/{self.user_pool_id}"
+
     def get_keys(self):
         if self.pool_jwk:
             return self.pool_jwk
@@ -207,9 +213,7 @@ class Cognito:
         # If it is not there use the requests library to get it
         else:
             self.pool_jwk = requests.get(
-                "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-                    self.user_pool_region, self.user_pool_id
-                )
+                f"{self.user_pool_url}/.well-known/jwks.json"
             ).json()
         return self.pool_jwk
 
@@ -218,26 +222,47 @@ class Cognito:
         key = list(filter(lambda x: x.get("kid") == kid, keys))
         return key[0]
 
+    def verify_tokens(self):
+        """
+        Verify the current id_token and access_token.  An exception will be
+        thrown if they do not pass verification.  It can be useful to call this
+        method after creating a Cognito instance where you've provided
+        externally-remembered token values.
+        """
+        self.verify_token(self.id_token, "id_token", "id")
+        self.verify_token(self.access_token, "access_token", "access")
+
     def verify_token(self, token, id_name, token_use):
+        # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
+
         kid = jwt.get_unverified_header(token).get("kid")
-        unverified_claims = jwt.get_unverified_claims(token)
-        token_use_verified = unverified_claims.get("token_use") == token_use
-        if not token_use_verified:
-            raise TokenVerificationException("Your {} token use could not be verified.")
         hmac_key = self.get_key(kid)
         try:
             verified = jwt.decode(
                 token,
                 hmac_key,
                 algorithms=["RS256"],
-                audience=unverified_claims.get("aud"),
-                issuer=unverified_claims.get("iss"),
+                audience=self.client_id,
+                issuer=self.user_pool_url,
+                options={
+                    "require_aud": True,
+                    "require_iss": True,
+                    "require_exp": True,
+                },
             )
         except JWTError:
             raise TokenVerificationException(
-                "Your {} token could not be verified."
+                f"Your {id_name!r} token could not be verified."
             ) from None
+
+        token_use_verified = verified.get("token_use") == token_use
+        if not token_use_verified:
+            raise TokenVerificationException(
+                f"Your {id_name!r} token use ({token_use!r}) could not be verified."
+            )
+
         setattr(self, id_name, token)
+        setattr(self, f"{token_use}_claims", verified)
         return verified
 
     def get_user_obj(
@@ -403,13 +428,7 @@ class Cognito:
             AuthFlow="ADMIN_NO_SRP_AUTH",
             AuthParameters=auth_params,
         )
-
-        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.verify_token(
-            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
-        )
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def authenticate(self, password):
         """
@@ -426,12 +445,7 @@ class Cognito:
             client_secret=self.client_secret,
         )
         tokens = aws.authenticate_user()
-        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.verify_token(
-            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
-        )
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def new_password_challenge(self, password, new_password):
         """
@@ -448,10 +462,7 @@ class Cognito:
             client_secret=self.client_secret,
         )
         tokens = aws.set_new_password_challenge(new_password)
-        self.id_token = tokens["AuthenticationResult"]["IdToken"]
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.access_token = tokens["AuthenticationResult"]["AccessToken"]
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def logout(self):
         """
@@ -622,15 +633,7 @@ class Cognito:
             AuthFlow="REFRESH_TOKEN_AUTH",
             AuthParameters=auth_params,
         )
-
-        self._set_attributes(
-            refresh_response,
-            {
-                "access_token": refresh_response["AuthenticationResult"]["AccessToken"],
-                "id_token": refresh_response["AuthenticationResult"]["IdToken"],
-                "token_type": refresh_response["AuthenticationResult"]["TokenType"],
-            },
-        )
+        self._set_tokens(refresh_response)
 
     def initiate_forgot_password(self):
         """
@@ -696,6 +699,18 @@ class Cognito:
                 self.username, self.client_id, self.client_secret
             )
             parameters[key] = secret_hash
+
+    def _set_tokens(self, tokens):
+        """
+        Helper function to verify and set token attributes based on a Cognito
+        AuthenticationResult.
+        """
+        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
+        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
+        self.verify_token(
+            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
+        )
+        self.token_type = tokens["AuthenticationResult"]["TokenType"]
 
     def _set_attributes(self, response, attribute_dict):
         """

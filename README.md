@@ -26,6 +26,7 @@ Makes working with AWS Cognito easier for Python developers.
     - [Get Group](#get-group)
     - [Get Groups](#get-groups)
     - [Check Token](#check-token)
+    - [Verify Tokens](#verify-tokens)
     - [Logout](#logout)
 - [Cognito SRP Utility](#cognito-srp-utility) `pycognito.aws_srp.AWSSRP`
   - [Using AWSSRP](#using-awssrp)
@@ -120,7 +121,16 @@ u = Cognito('your-user-pool-id','your-client-id',
     id_token='your-id-token',
     refresh_token='your-refresh-token',
     access_token='your-access-token')
+
+u.verify_tokens() # See method doc below; may throw an exception
 ```
+
+## Cognito Attributes
+
+After any authentication or other explicit verification of tokens, the following additional attributes will be available:
+
+- `id_claims` — A dict of verified claims from the id token
+- `access_claims` — A dict of verified claims from the access token
 
 ## Cognito Methods
 
@@ -128,7 +138,7 @@ u = Cognito('your-user-pool-id','your-client-id',
 
 Register a user to the user pool
 
-**Important:** The arguments for `set_base_attributes` and `add_custom_attributes` methods depend on your user pool's configuration, and make sure the client id (app id) used has write permissions for the attriubtes you are trying to create. Example, if you want to create a user with a given_name equal to Johnson make sure the client_id you're using has permissions to edit or create given_name for a user in the pool.
+**Important:** The arguments for `set_base_attributes` and `add_custom_attributes` methods depend on your user pool's configuration, and make sure the client id (app id) used has write permissions for the attributes you are trying to create. Example, if you want to create a user with a given_name equal to Johnson make sure the client_id you're using has permissions to edit or create given_name for a user in the pool.
 
 ```python
 from pycognito import Cognito
@@ -423,6 +433,27 @@ u.check_token()
 
 No arguments for check_token
 
+#### Verify Tokens
+
+Verifies the current `id_token` and `access_token`.
+An exception will be thrown if they do not pass verification.
+It can be useful to call this method immediately after instantiation when you're providing externally-remembered tokens to the `Cognito()` constructor.
+Note that if you're calling `check_tokens()` after instantitation, you'll still want to call `verify_tokens()` afterwards it in case it did nothing.
+This method also ensures that the `id_claims` and `access_claims` attributes are set with the verified claims from each token.
+
+```python
+u = Cognito('your-user-pool-id','your-client-id',
+    id_token='id-token',refresh_token='refresh-token',
+    access_token='access-token')
+
+u.check_tokens()  # Optional, if you want to maybe renew the tokens
+u.verify_tokens()
+```
+
+##### Arguments
+
+No arguments for verify_tokens
+
 #### Logout
 
 Logs the user out of all clients and removes the expires_in, expires_datetime, id_token, refresh_token, access_token, and token_type attributes.
@@ -441,7 +472,7 @@ u.logout()
 
 ##### Arguments
 
-No arguments for check_token
+No arguments for logout
 
 ## Cognito SRP Utility
 
