@@ -511,31 +511,6 @@ class Cognito:
             for user in user_list
         ]
 
-    def admin_get_user(self, attr_map=None):
-        """
-        Get the user's details using admin super privileges.
-        :param attr_map: Dictionary map from Cognito attributes to attribute
-        names we would like to show to our users
-        :return: UserObj object
-        """
-        user = self.client.admin_get_user(
-            UserPoolId=self.user_pool_id, Username=self.username
-        )
-        user_metadata = {
-            "enabled": user.get("Enabled"),
-            "user_status": user.get("UserStatus"),
-            "username": user.get("Username"),
-            "id_token": self.id_token,
-            "access_token": self.access_token,
-            "refresh_token": self.refresh_token,
-        }
-        return self.get_user_obj(
-            username=self.username,
-            attribute_list=user.get("UserAttributes"),
-            metadata=user_metadata,
-            attr_map=attr_map,
-        )
-
     def send_verification(self, attribute="email"):
         """
         Sends the user an attribute verification code for the specified attribute name.
@@ -688,6 +663,31 @@ class Cognito:
         )
         self._set_tokens(tokens)
 
+    def admin_get_user(self, username, attr_map=None):
+        """
+        Get the user's details using admin super privileges.
+        :param attr_map: Dictionary map from Cognito attributes to attribute
+        names we would like to show to our users
+        :return: UserObj object
+        """
+        user = self.client.admin_get_user(
+            UserPoolId=self.user_pool_id, Username=username
+        )
+        user_metadata = {
+            "enabled": user.get("Enabled"),
+            "user_status": user.get("UserStatus"),
+            "username": user.get("Username"),
+            "id_token": self.id_token,
+            "access_token": self.access_token,
+            "refresh_token": self.refresh_token,
+        }
+        return self.get_user_obj(
+            username=username,
+            attribute_list=user.get("UserAttributes"),
+            metadata=user_metadata,
+            attr_map=attr_map,
+        )
+
     def admin_confirm_sign_up(self, username=None):
         """
         Confirms user registration as an admin without using a confirmation
@@ -734,7 +734,30 @@ class Cognito:
         self._set_attributes(response, kwargs)
 
         response.pop("ResponseMetadata")
-        return response
+        user = response["User"]
+        user_metadata = {
+            "enabled": user.get("Enabled"),
+            "user_status": user.get("UserStatus"),
+            "username": user.get("Username")
+        }
+        return self.get_user_obj(
+            username=username,
+            attribute_list=user.get("Attributes"),
+            metadata=user_metadata,
+            attr_map=attr_map,
+        )
+
+    def admin_resend_invitation(self, username, temporary_password="", attr_map=None, **kwargs):
+        if not kwargs:
+            # if kwargs are not provided, carry forward the user attributes that already exist
+            existing_user = self.admin_get_user(username)
+            kwargs = existing_user.attributes
+        return self.admin_create_user(
+            username=username,
+            temporary_password=temporary_password,
+            attr_map=attr_map,
+            message_action="RESEND",
+            **kwargs)
 
     def admin_delete_user(self, username):
         self.client.admin_delete_user(
