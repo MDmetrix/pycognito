@@ -381,20 +381,6 @@ class Cognito:
         response.pop("ResponseMetadata")
         return response
 
-    def admin_confirm_sign_up(self, username=None):
-        """
-        Confirms user registration as an admin without using a confirmation
-        code. Works on any user.
-        :param username: User's username
-        :return:
-        """
-        if not username:
-            username = self.username
-        self.client.admin_confirm_sign_up(
-            UserPoolId=self.user_pool_id,
-            Username=username,
-        )
-
     def confirm_sign_up(self, confirmation_code, username=None):
         """
         Using the confirmation code that is either sent via email or text
@@ -412,23 +398,6 @@ class Cognito:
         }
         self._add_secret_hash(params, "SecretHash")
         self.client.confirm_sign_up(**params)
-
-    def admin_authenticate(self, password):
-        """
-        Authenticate the user using admin super privileges
-        :param password: User's password
-        :return:
-        """
-        auth_params = {"USERNAME": self.username, "PASSWORD": password}
-        self._add_secret_hash(auth_params, "SECRET_HASH")
-        tokens = self.client.admin_initiate_auth(
-            UserPoolId=self.user_pool_id,
-            ClientId=self.client_id,
-            # AuthFlow='USER_SRP_AUTH'|'REFRESH_TOKEN_AUTH'|'REFRESH_TOKEN'|'CUSTOM_AUTH'|'ADMIN_NO_SRP_AUTH',
-            AuthFlow="ADMIN_NO_SRP_AUTH",
-            AuthParameters=auth_params,
-        )
-        self._set_tokens(tokens)
 
     def authenticate(self, password):
         """
@@ -477,14 +446,6 @@ class Cognito:
         self.refresh_token = None
         self.access_token = None
         self.token_type = None
-
-    def admin_update_profile(self, attrs, attr_map=None):
-        user_attrs = dict_to_cognito(attrs, attr_map)
-        self.client.admin_update_user_attributes(
-            UserPoolId=self.user_pool_id,
-            Username=self.username,
-            UserAttributes=user_attrs,
-        )
 
     def update_profile(self, attrs, attr_map=None):
         """
@@ -575,30 +536,6 @@ class Cognito:
             attr_map=attr_map,
         )
 
-    def admin_create_user(
-        self, username, temporary_password="", attr_map=None, **kwargs
-    ):
-        """
-        Create a user using admin super privileges.
-        :param username: User Pool username
-        :param temporary_password: The temporary password to give the user.
-        Leave blank to make Cognito generate a temporary password for the user.
-        :param attr_map: Attribute map to Cognito's attributes
-        :param kwargs: Additional User Pool attributes
-        :return response: Response from Cognito
-        """
-        response = self.client.admin_create_user(
-            UserPoolId=self.user_pool_id,
-            Username=username,
-            UserAttributes=dict_to_cognito(kwargs, attr_map),
-            TemporaryPassword=temporary_password,
-        )
-        kwargs.update(username=username)
-        self._set_attributes(response, kwargs)
-
-        response.pop("ResponseMetadata")
-        return response
-
     def send_verification(self, attribute="email"):
         """
         Sends the user an attribute verification code for the specified attribute name.
@@ -646,18 +583,6 @@ class Cognito:
     def delete_user(self):
 
         self.client.delete_user(AccessToken=self.access_token)
-
-    def admin_delete_user(self):
-        self.client.admin_delete_user(
-            UserPoolId=self.user_pool_id, Username=self.username
-        )
-
-    def admin_reset_password(self, username, client_metadata=None):
-        self.client.admin_reset_user_password(
-            UserPoolId=self.user_pool_id,
-            Username=username,
-            ClientMetatada=client_metadata,
-        )
 
     def confirm_forgot_password(self, confirmation_code, password):
         """
@@ -746,6 +671,81 @@ class Cognito:
         response = self.client.list_groups(UserPoolId=self.user_pool_id)
         return [self.get_group_obj(group_data) for group_data in response.get("Groups")]
 
+    def admin_authenticate(self, password):
+        """
+        Authenticate the user using admin super privileges
+        :param password: User's password
+        :return:
+        """
+        auth_params = {"USERNAME": self.username, "PASSWORD": password}
+        self._add_secret_hash(auth_params, "SECRET_HASH")
+        tokens = self.client.admin_initiate_auth(
+            UserPoolId=self.user_pool_id,
+            ClientId=self.client_id,
+            # AuthFlow='USER_SRP_AUTH'|'REFRESH_TOKEN_AUTH'|'REFRESH_TOKEN'|'CUSTOM_AUTH'|'ADMIN_NO_SRP_AUTH',
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters=auth_params,
+        )
+        self._set_tokens(tokens)
+
+    def admin_confirm_sign_up(self, username=None):
+        """
+        Confirms user registration as an admin without using a confirmation
+        code. Works on any user.
+        :param username: User's username
+        :return:
+        """
+        if not username:
+            username = self.username
+        self.client.admin_confirm_sign_up(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+        )
+
+    def admin_update_profile(self, attrs, attr_map=None):
+        user_attrs = dict_to_cognito(attrs, attr_map)
+        self.client.admin_update_user_attributes(
+            UserPoolId=self.user_pool_id,
+            Username=self.username,
+            UserAttributes=user_attrs,
+        )
+
+    def admin_create_user(
+        self, username, temporary_password="", attr_map=None, **kwargs
+    ):
+        """
+        Create a user using admin super privileges.
+        :param username: User Pool username
+        :param temporary_password: The temporary password to give the user.
+        Leave blank to make Cognito generate a temporary password for the user.
+        :param attr_map: Attribute map to Cognito's attributes
+        :param kwargs: Additional User Pool attributes
+        :return response: Response from Cognito
+        """
+        response = self.client.admin_create_user(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            UserAttributes=dict_to_cognito(kwargs, attr_map),
+            TemporaryPassword=temporary_password,
+        )
+        kwargs.update(username=username)
+        self._set_attributes(response, kwargs)
+
+        response.pop("ResponseMetadata")
+        return response
+
+    def admin_delete_user(self):
+        self.client.admin_delete_user(
+            UserPoolId=self.user_pool_id, Username=self.username
+        )
+
+    def admin_reset_password(self, username, client_metadata=None):
+        self.client.admin_reset_user_password(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            ClientMetatada=client_metadata,
+        )
+
     def admin_add_user_to_group(self, username, group_name):
         """
         Add the user to the specified group
@@ -823,3 +823,4 @@ class Cognito:
             UserPoolId=self.user_pool_id,
             Username=self.username,
         )
+
