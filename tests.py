@@ -368,6 +368,7 @@ class CognitoAdminTestCase(unittest.TestCase):
         self.pool_id = self.mock_conn.create_user_pool(PoolName="userpool")["UserPool"]["Id"]
         self.mock_conn.admin_create_user(UserPoolId=self.pool_id, Username="default_user", UserAttributes=[{"Name":"thing", "Value": "Default User"}])
         self.mock_conn.create_group(GroupName="default_group", UserPoolId=self.pool_id)
+        self.mock_conn.create_group(GroupName="test_group", UserPoolId=self.pool_id)
         self.mock_conn.admin_add_user_to_group(UserPoolId=self.pool_id, Username="default_user", GroupName="default_group")
         self.client_id = 'clientid'
         self.client_secret = 'clientsecret'
@@ -429,6 +430,26 @@ class CognitoAdminTestCase(unittest.TestCase):
     def test_admin_list_groups_for_user(self):
         ret = self.cognito.admin_list_groups_for_user("default_user")
         self.assertEqual(ret, ["default_group"])
+
+    def test_admin_add_user_to_group(self):
+        self.cognito.admin_add_user_to_group("default_user", "test_group")
+        groups = self.cognito.admin_list_groups_for_user("default_user")
+        self.assertIn("test_group", groups)
+
+    def test_admin_remove_user_from_group(self):
+        self.cognito.admin_remove_user_from_group("default_user", "default_group")
+        groups = self.cognito.admin_list_groups_for_user("default_user")
+        self.assertNotIn("default_group", groups)
+
+    def test_admin_enable_user(self):
+        ret = self.cognito.admin_enable_user("default_user")
+        user = self.cognito.admin_get_user("default_user")
+        self.assertTrue(user.enabled)
+
+    def test_admin_disable_user(self):
+        ret = self.cognito.admin_disable_user("default_user")
+        user = self.cognito.admin_get_user("default_user")
+        self.assertFalse(user.enabled)
 
 if __name__ == "__main__":
     unittest.main()

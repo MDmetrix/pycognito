@@ -667,7 +667,7 @@ class Cognito:
         )
         self._set_tokens(tokens)
 
-    def admin_get_user(self, username, attr_map=None):
+    def admin_get_user(self, username, attr_map=None) -> UserObj:
         """
         Get the user's details using admin super privileges.
         :param attr_map: Dictionary map from Cognito attributes to attribute
@@ -716,7 +716,7 @@ class Cognito:
 
     def admin_create_user(
         self, username, temporary_password="", attr_map=None, message_action="", **kwargs
-    ):
+    ) -> UserObj:
         """
         Create a user using admin super privileges.
         :param username: User Pool username
@@ -753,7 +753,7 @@ class Cognito:
             attr_map=attr_map,
         )
 
-    def admin_resend_invitation(self, username, temporary_password="", attr_map=None, groups=None, **kwargs):
+    def admin_resend_invitation(self, username, temporary_password="", attr_map=None, groups=None, **kwargs) -> UserObj:
         if not kwargs:
             # if kwargs are not provided, carry forward the user attributes that already exist
             existing_user = self.admin_get_user(username)
@@ -861,6 +861,6 @@ class Cognito:
         """
         self.client.admin_disable_user(
             UserPoolId=self.user_pool_id,
-            Username=self.username,
+            Username=username,
         )
 
