@@ -4,7 +4,10 @@ from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from mock import patch
 from envs import env
+from moto import mock_cognitoidp
+import boto3
 
+import pycognito
 from pycognito import Cognito, UserObj, GroupObj, TokenVerificationException
 from pycognito.aws_srp import AWSSRP
 
@@ -353,6 +356,42 @@ class AWSSRPTestCase(unittest.TestCase):
             self.assertTrue("AccessToken" in tokens["AuthenticationResult"])
             self.assertTrue("RefreshToken" in tokens["AuthenticationResult"])
             stub.assert_no_pending_responses()
+
+
+
+class CognitoAdminTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.cognito_idp_patcher = mock_cognitoidp()
+        self.mock_cognitoidp = self.cognito_idp_patcher.start()
+        self.mock_conn = boto3.client("cognito-idp", "us-west-2")
+        self.pool_id = self.mock_conn.create_user_pool(PoolName="userpool")["UserPool"]["Id"]
+        self.mock_conn.admin_create_user(UserPoolId=self.pool_id, Username="default_user", UserAttributes=[{"Name":"name", "Value": "Default User"}])
+        self.client_id = 'clientid'
+        self.client_secret = 'clientsecret'
+
+        self.access_key_id = 'accesskeyid'
+        self.secret_access_key = 'secretaccesskey'
+        self.cognito = pycognito.Cognito(self.pool_id,
+                                         self.client_id,
+                                         client_secret=self.client_secret,
+                                         access_key=self.access_key_id,
+                                         secret_key=self.secret_access_key)
+
+    def tearDown(self):
+        self.cognito_idp_patcher.stop()
+
+    def test_admin_create_user_explicit_password(self):
+        ret = self.cognito.admin_create_user("test_user", "password")
+        print(ret)
+
+    def test_admin_create_user_no_password(self):
+        ret = self.cognito.admin_create_user("test_user")
+        print(ret)
+
+    def test_admin_delete_user(self):
+        self.cognito.admin_delete_user("default_user")
+
 
 
 if __name__ == "__main__":
