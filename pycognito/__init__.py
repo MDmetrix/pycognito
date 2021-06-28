@@ -753,17 +753,22 @@ class Cognito:
             attr_map=attr_map,
         )
 
-    def admin_resend_invitation(self, username, temporary_password="", attr_map=None, **kwargs):
+    def admin_resend_invitation(self, username, temporary_password="", attr_map=None, groups=None, **kwargs):
         if not kwargs:
             # if kwargs are not provided, carry forward the user attributes that already exist
             existing_user = self.admin_get_user(username)
             kwargs = existing_user.attributes
-        return self.admin_create_user(
+        if groups is None:
+            groups = self.admin_list_groups_for_user(username)
+        ret = self.admin_create_user(
             username=username,
             temporary_password=temporary_password,
             attr_map=attr_map,
             message_action="RESEND",
             **kwargs)
+        for group in groups:
+            self.admin_add_user_to_group(username, group)
+        return ret
 
     def admin_delete_user(self, username):
         self.client.admin_delete_user(

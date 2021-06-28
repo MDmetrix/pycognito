@@ -367,6 +367,8 @@ class CognitoAdminTestCase(unittest.TestCase):
         self.mock_conn = boto3.client("cognito-idp", "us-west-2")
         self.pool_id = self.mock_conn.create_user_pool(PoolName="userpool")["UserPool"]["Id"]
         self.mock_conn.admin_create_user(UserPoolId=self.pool_id, Username="default_user", UserAttributes=[{"Name":"thing", "Value": "Default User"}])
+        self.mock_conn.create_group(GroupName="default_group", UserPoolId=self.pool_id)
+        self.mock_conn.admin_add_user_to_group(UserPoolId=self.pool_id, Username="default_user", GroupName="default_group")
         self.client_id = 'clientid'
         self.client_secret = 'clientsecret'
 
@@ -396,7 +398,16 @@ class CognitoAdminTestCase(unittest.TestCase):
     def test_admin_resend_invitation(self):
         ret = self.cognito.admin_resend_invitation("default_user")
         self.assertIsInstance(ret, UserObj)
-        self.assertEqual(ret.thing, "Default User")
+
+    def test_admin_resend_invitation_preserves_groups_if_omitted(self):
+        ret = self.cognito.admin_resend_invitation("default_user")
+        groups = self.cognito.admin_list_groups_for_user("default_user")
+        self.assertEqual(groups, ["default_group"])
+
+    def test_admin_resend_invitation_overwrites_groups_if_passed(self):
+        ret = self.cognito.admin_resend_invitation("default_user", groups=[])
+        groups = self.cognito.admin_list_groups_for_user("default_user")
+        self.assertEqual(groups, [])
 
     def test_admin_resend_invitation_missing_user(self):
         with self.assertRaises(self.mock_conn.exceptions.UserNotFoundException):
@@ -414,6 +425,10 @@ class CognitoAdminTestCase(unittest.TestCase):
             ret = self.cognito.admin_reset_password("default_user")
         except NotImplementedError:
             unittest.skip("admin_reset_password not yet supported by moto")
+
+    def test_admin_list_groups_for_user(self):
+        ret = self.cognito.admin_list_groups_for_user("default_user")
+        self.assertEqual(ret, ["default_group"])
 
 if __name__ == "__main__":
     unittest.main()
