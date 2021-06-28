@@ -366,7 +366,7 @@ class CognitoAdminTestCase(unittest.TestCase):
         self.mock_cognitoidp = self.cognito_idp_patcher.start()
         self.mock_conn = boto3.client("cognito-idp", "us-west-2")
         self.pool_id = self.mock_conn.create_user_pool(PoolName="userpool")["UserPool"]["Id"]
-        self.mock_conn.admin_create_user(UserPoolId=self.pool_id, Username="default_user", UserAttributes=[{"Name":"name", "Value": "Default User"}])
+        self.mock_conn.admin_create_user(UserPoolId=self.pool_id, Username="default_user", UserAttributes=[{"Name":"thing", "Value": "Default User"}])
         self.client_id = 'clientid'
         self.client_secret = 'clientsecret'
 
@@ -383,16 +383,35 @@ class CognitoAdminTestCase(unittest.TestCase):
 
     def test_admin_create_user_explicit_password(self):
         ret = self.cognito.admin_create_user("test_user", "password")
-        print(ret)
+        self.assertIsInstance(ret, UserObj)
 
     def test_admin_create_user_no_password(self):
         ret = self.cognito.admin_create_user("test_user")
-        print(ret)
+        self.assertIsInstance(ret, UserObj)
+
+    def test_admin_create_user_with_attributes(self):
+        ret = self.cognito.admin_create_user("test_user", thing="Test User")
+        self.assertEqual(ret.thing, "Test User")
+
+    def test_admin_resend_invitation(self):
+        ret = self.cognito.admin_resend_invitation("default_user")
+        self.assertIsInstance(ret, UserObj)
+        self.assertEqual(ret.thing, "Default User")
+
+    def test_admin_resend_invitation_missing_user(self):
+        with self.assertRaises(self.mock_conn.exceptions.UserNotFoundException):
+            ret = self.cognito.admin_resend_invitation("test_user")
 
     def test_admin_delete_user(self):
         self.cognito.admin_delete_user("default_user")
 
+    def test_admin_get_user(self):
+        ret = self.cognito.admin_get_user("default_user")
+        self.assertEqual(ret.thing, "Default User")
 
+    @unittest.skip("admin_reset_password not supported by moto at this time")
+    def test_admin_reset_password(self):
+        ret = self.cognito.admin_reset_password("default_user")
 
 if __name__ == "__main__":
     unittest.main()
