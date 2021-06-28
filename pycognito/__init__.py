@@ -722,12 +722,14 @@ class Cognito:
         :param kwargs: Additional User Pool attributes
         :return response: Response from Cognito
         """
-        response = self.client.admin_create_user(
+        params = dict(
             UserPoolId=self.user_pool_id,
             Username=username,
-            UserAttributes=dict_to_cognito(kwargs, attr_map),
-            TemporaryPassword=temporary_password,
+            UserAttributes=dict_to_cognito(kwargs, attr_map)
         )
+        if temporary_password:
+            params["TemporaryPassword"] = temporary_password
+        response = self.client.admin_create_user(**params)
         kwargs.update(username=username)
         self._set_attributes(response, kwargs)
 
