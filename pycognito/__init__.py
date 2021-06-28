@@ -736,9 +736,9 @@ class Cognito:
         response.pop("ResponseMetadata")
         return response
 
-    def admin_delete_user(self):
+    def admin_delete_user(self, username=None):
         self.client.admin_delete_user(
-            UserPoolId=self.user_pool_id, Username=self.username
+            UserPoolId=self.user_pool_id, Username=username or self.username
         )
 
     def admin_reset_password(self, username, client_metadata=None):
