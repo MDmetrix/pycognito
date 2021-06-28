@@ -409,9 +409,11 @@ class CognitoAdminTestCase(unittest.TestCase):
         ret = self.cognito.admin_get_user("default_user")
         self.assertEqual(ret.thing, "Default User")
 
-    @unittest.skip("admin_reset_password not supported by moto at this time")
     def test_admin_reset_password(self):
-        ret = self.cognito.admin_reset_password("default_user")
+        try:
+            ret = self.cognito.admin_reset_password("default_user")
+        except NotImplementedError:
+            unittest.skip("admin_reset_password not yet supported by moto")
 
 if __name__ == "__main__":
     unittest.main()

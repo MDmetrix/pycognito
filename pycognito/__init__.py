@@ -771,10 +771,14 @@ class Cognito:
         )
 
     def admin_reset_password(self, username, client_metadata=None):
-        self.client.admin_reset_user_password(
+        params = dict(
             UserPoolId=self.user_pool_id,
-            Username=username,
-            ClientMetadata=client_metadata,
+            Username=username
+        )
+        if client_metadata:
+            params["ClientMetadata"] = client_metadata
+        self.client.admin_reset_user_password(
+            **params
         )
 
     def admin_add_user_to_group(self, username, group_name):
