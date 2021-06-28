@@ -195,7 +195,7 @@ class CognitoAuthTestCase(unittest.TestCase):
         )
 
         with stub:
-            u = self.user.admin_get_user()
+            u = self.user.admin_get_user(self.username)
             self.assertEqual(u.username, self.username)
             stub.assert_no_pending_responses()
 
