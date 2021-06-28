@@ -109,6 +109,10 @@ class UserObj:
             return
         self._cognito.delete_user()
 
+    @property
+    def attributes(self):
+        return self._data
+
 
 class GroupObj:
     def __init__(self, group_data, cognito_obj):
@@ -711,7 +715,7 @@ class Cognito:
         )
 
     def admin_create_user(
-        self, username, temporary_password="", attr_map=None, **kwargs
+        self, username, temporary_password="", attr_map=None, message_action="", **kwargs
     ):
         """
         Create a user using admin super privileges.
@@ -729,6 +733,8 @@ class Cognito:
         )
         if temporary_password:
             params["TemporaryPassword"] = temporary_password
+        if message_action:
+            params["MessageAction"] = message_action
         response = self.client.admin_create_user(**params)
         kwargs.update(username=username)
         self._set_attributes(response, kwargs)
