@@ -743,7 +743,7 @@ class Cognito:
         self.client.admin_reset_user_password(
             UserPoolId=self.user_pool_id,
             Username=username,
-            ClientMetatada=client_metadata,
+            ClientMetadata=client_metadata,
         )
 
     def admin_add_user_to_group(self, username, group_name):
