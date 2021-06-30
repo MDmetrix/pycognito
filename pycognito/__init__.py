@@ -872,3 +872,9 @@ class Cognito:
             Password=password,
             Permanent=permanent
         )
+
+    def admin_user_global_sign_out(self, username):
+        self.client.admin_user_global_sign_out(
+            UserPoolId=self.user_pool_id,
+            Username=username
+        )

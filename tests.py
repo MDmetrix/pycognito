@@ -454,7 +454,11 @@ class CognitoAdminTestCase(unittest.TestCase):
     def test_admin_set_password(self):
         self.cognito.admin_set_user_password(username="default_user", password="newpassword")
 
-
+    def test_admin_user_global_sign_out(self):
+        try:
+            self.cognito.admin_user_global_sign_out("default_user")
+        except NotImplementedError:
+            unittest.skip("admin_user_global_sign_out not yet supported by moto")
 
 if __name__ == "__main__":
     unittest.main()
