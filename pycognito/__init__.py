@@ -865,3 +865,10 @@ class Cognito:
             Username=username,
         )
 
+    def admin_set_user_password(self, username, password, permanent=False):
+        self.client.admin_set_user_password(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            Password=password,
+            Permanent=str(permanent)
+        )
