@@ -870,5 +870,5 @@ class Cognito:
             UserPoolId=self.user_pool_id,
             Username=username,
             Password=password,
-            Permanent=str(permanent)
+            Permanent=permanent
         )
