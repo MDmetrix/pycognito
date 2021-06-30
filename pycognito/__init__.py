@@ -723,8 +723,9 @@ class Cognito:
         :param temporary_password: The temporary password to give the user.
         Leave blank to make Cognito generate a temporary password for the user.
         :param attr_map: Attribute map to Cognito's attributes
+        :param message_action: RESEND or SUPPRESS
         :param kwargs: Additional User Pool attributes
-        :return response: Response from Cognito
+        :return UserObj object
         """
         params = dict(
             UserPoolId=self.user_pool_id,
