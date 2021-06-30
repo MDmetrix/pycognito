@@ -451,5 +451,10 @@ class CognitoAdminTestCase(unittest.TestCase):
         user = self.cognito.admin_get_user("default_user")
         self.assertFalse(user.enabled)
 
+    def test_admin_set_password(self):
+        self.cognito.admin_set_user_password(username="default_user", password="newpassword")
+
+
+
 if __name__ == "__main__":
     unittest.main()
