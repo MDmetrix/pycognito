@@ -99,13 +99,13 @@ class UserObj:
 
     def save(self, admin=False):
         if admin:
-            self._cognito.admin_update_profile(self._data, self._attr_map)
+            self._cognito.admin_update_profile(self.username, self._data, self._attr_map)
             return
         self._cognito.update_profile(self._data, self._attr_map)
 
     def delete(self, admin=False):
         if admin:
-            self._cognito.admin_delete_user()
+            self._cognito.admin_delete_user(self.username)
             return
         self._cognito.delete_user()
 
@@ -706,11 +706,11 @@ class Cognito:
             Username=username,
         )
 
-    def admin_update_profile(self, attrs, attr_map=None):
+    def admin_update_profile(self, username, attrs, attr_map=None):
         user_attrs = dict_to_cognito(attrs, attr_map)
         self.client.admin_update_user_attributes(
             UserPoolId=self.user_pool_id,
-            Username=self.username,
+            Username=username,
             UserAttributes=user_attrs,
         )
 
@@ -812,7 +812,7 @@ class Cognito:
             GroupName=group_name,
         )
 
-    def admin_list_groups_for_user(self, username):
+    def admin_list_groups_for_user(self, username) -> list[str]:
         """
         Get the list of groups a user belongs to
         :param username:
