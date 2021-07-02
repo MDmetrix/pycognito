@@ -480,7 +480,7 @@ class Cognito:
             "refresh_token": self.refresh_token,
         }
         return self.get_user_obj(
-            username=self.username,
+            username=user.get("Username"),
             attribute_list=user.get("UserAttributes"),
             metadata=user_metadata,
             attr_map=attr_map,
@@ -686,7 +686,7 @@ class Cognito:
             "refresh_token": self.refresh_token,
         }
         return self.get_user_obj(
-            username=username,
+            username=user.get("Username"),
             attribute_list=user.get("UserAttributes"),
             metadata=user_metadata,
             attr_map=attr_map,
@@ -748,7 +748,7 @@ class Cognito:
             "username": user.get("Username")
         }
         return self.get_user_obj(
-            username=username,
+            username=user.get("Username"),
             attribute_list=user.get("Attributes"),
             metadata=user_metadata,
             attr_map=attr_map,
